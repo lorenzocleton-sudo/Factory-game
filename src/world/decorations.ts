@@ -41,7 +41,8 @@ export function generateDecorations(gridW: number, gridH: number): Decoration[] 
 
   for (const side of sides) {
     const len = side === 'top' || side === 'bottom' ? W : H;
-    const count = 3;
+    // Scale with side length so larger islands stay evenly decorated.
+    const count = Math.max(3, Math.round(len / TILE_SIZE / 3));
     for (let i = 0; i < count; i++) {
       // Spread along the side, with jitter, avoiding the corners.
       const t = (i + 0.5) / count;

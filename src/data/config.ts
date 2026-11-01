@@ -4,7 +4,7 @@
  */
 
 /** Number of buildable tiles along each side of the island. */
-export const GRID_SIZE = 10;
+export const GRID_SIZE = 20;
 
 /** Size of one tile in world units (world units == screen px at zoom 1). */
 export const TILE_SIZE = 64;
