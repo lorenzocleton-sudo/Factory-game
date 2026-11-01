@@ -1,6 +1,9 @@
 import { Application, Container } from 'pixi.js';
-import { CLIFF_HEIGHT, COLORS, TICKS_PER_SECOND, TILE_SIZE, UNDERSIDE_DEPTH } from './data/config';
+import { AUTOSAVE_MS, CLIFF_HEIGHT, COLORS, TICKS_PER_SECOND, TILE_SIZE, UNDERSIDE_DEPTH } from './data/config';
+import { BuildController } from './game/controller';
+import { clearSave, loadGame, saveGame } from './game/save';
 import { PointerInput } from './input/pointerInput';
+import { BuildingRenderer } from './render/buildingRenderer';
 import { Camera } from './render/camera';
 import { DebugOverlay } from './render/debugOverlay';
 import { IslandRenderer } from './render/islandRenderer';
@@ -8,6 +11,7 @@ import { SkyRenderer } from './render/skyRenderer';
 import { TileHighlight } from './render/tileHighlight';
 import { FixedTickLoop } from './sim/fixedTickLoop';
 import { Simulation } from './sim/simulation';
+import { Hud } from './ui/hud';
 import { Grid } from './world/grid';
 import { World } from './world/world';
 
@@ -26,7 +30,8 @@ async function main(): Promise<void> {
 
   // --- World (pure data) + simulation ---------------------------------
   const world = new World();
-  const sim = new Simulation(world);
+  const game = loadGame(world.grid.width, world.grid.height);
+  const sim = new Simulation(world, game);
   const loop = new FixedTickLoop(TICKS_PER_SECOND, () => sim.step());
   loop.start();
 
@@ -35,7 +40,8 @@ async function main(): Promise<void> {
   const worldLayer = new Container();
   const island = new IslandRenderer(world);
   const highlight = new TileHighlight();
-  island.overlay.addChild(highlight.view);
+  const buildings = new BuildingRenderer(game);
+  island.overlay.addChild(buildings.root, highlight.view);
   worldLayer.addChild(island.root);
   app.stage.addChild(sky.root, worldLayer);
 
@@ -59,24 +65,62 @@ async function main(): Promise<void> {
   };
   handleResize();
 
-  // --- Input --------------------------------------------------------------
-  new PointerInput(app.canvas, camera, {
-    onTap: (screen) => {
-      const w = camera.screenToWorld(screen.x, screen.y);
-      const tile = Grid.worldToTile(w.x, w.y);
-      if (world.grid.inBounds(tile.x, tile.y)) highlight.show(tile);
-      else highlight.hide();
+  // --- Save -------------------------------------------------------------------
+  let resetting = false;
+  const save = (): void => {
+    if (!resetting) saveGame(game);
+  };
+  setInterval(save, AUTOSAVE_MS);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') save();
+  });
+  window.addEventListener('pagehide', save);
+
+  // --- UI + build tools ----------------------------------------------------------
+  let controller: BuildController;
+  const hud = new Hud({
+    onTool: (tool) => controller.setTool(tool),
+    onRotate: () => controller.rotate(),
+    onReset: () => {
+      if (!window.confirm('Reset the game? All progress will be lost.')) return;
+      resetting = true;
+      clearSave();
+      window.location.reload();
     },
   });
+  controller = new BuildController(game, hud, highlight);
+
+  // --- Input --------------------------------------------------------------
+  const tileAt = (screen: { x: number; y: number }) => {
+    const w = camera.screenToWorld(screen.x, screen.y);
+    return Grid.worldToTile(w.x, w.y);
+  };
+  new PointerInput(app.canvas, camera, {
+    onTap: (screen) => controller.tap(tileAt(screen)),
+    onHover: (screen) => controller.hover(tileAt(screen)),
+    wantsDraw: () => controller.wantsDraw(),
+    onDrawStart: (screen) => controller.drawStart(tileAt(screen)),
+    onDrawMove: (screen) => controller.drawMove(tileAt(screen)),
+    onDrawEnd: () => controller.drawEnd(),
+    onDrawCancel: () => controller.drawCancel(),
+  });
+
+  // Dev-only handle for automated testing in the browser console.
+  if (import.meta.env.DEV) {
+    (window as unknown as Record<string, unknown>).__cogwork = { game, camera, sim, controller };
+  }
 
   // --- Render loop ----------------------------------------------------------
-  const debug = new DebugOverlay();
+  const debug = new DebugOverlay(document.body, 52);
   app.ticker.add((ticker) => {
     const dt = Math.min(0.1, ticker.deltaMS / 1000);
     handleResize();
     camera.applyTo(worldLayer);
     sky.update(dt, (camera.x - parallaxOrigin.x) * camera.zoom, (camera.y - parallaxOrigin.y) * camera.zoom);
     highlight.update(dt);
+    buildings.update(dt, loop.alpha, controller.view());
+    const cap = game.capacity();
+    hud.update(game.pool(), cap.used, cap.total);
 
     const sel = highlight.current;
     debug.update({

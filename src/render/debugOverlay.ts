@@ -6,11 +6,11 @@ export class DebugOverlay {
   private readonly el: HTMLDivElement;
   private lastUpdate = 0;
 
-  constructor(parent: HTMLElement = document.body) {
+  constructor(parent: HTMLElement = document.body, topOffsetPx = 8) {
     this.el = document.createElement('div');
     Object.assign(this.el.style, {
       position: 'fixed',
-      top: 'calc(env(safe-area-inset-top, 0px) + 8px)',
+      top: `calc(env(safe-area-inset-top, 0px) + ${topOffsetPx}px)`,
       left: 'calc(env(safe-area-inset-left, 0px) + 8px)',
       padding: '4px 8px',
       borderRadius: '8px',

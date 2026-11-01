@@ -79,3 +79,32 @@ export const COLORS = {
 
   highlight: 0xffffff,
 } as const;
+
+// --- Gameplay tuning ---------------------------------------------------------
+
+/** Ticks for a fully powered miner to produce one ore (2 s). */
+export const MINER_TICKS = 2 * TICKS_PER_SECOND;
+/** Power a miner uses. */
+export const MINER_POWER = 5;
+/** Power a burning generator produces. */
+export const GENERATOR_POWER = 20;
+/** Ticks one coal burns for (10 s). */
+export const GENERATOR_BURN_TICKS = 10 * TICKS_PER_SECOND;
+/** Coal a generator can hold. */
+export const GENERATOR_MAX_COAL = 10;
+/** Items one storage can hold (all types combined). */
+export const STORAGE_CAPACITY = 100;
+/** Conveyor speed in tiles per second. */
+export const CONVEYOR_TILES_PER_SECOND = 2;
+/** Conveyor progress per tick (fraction of a tile). */
+export const CONVEYOR_STEP = CONVEYOR_TILES_PER_SECOND / TICKS_PER_SECOND;
+/** Minimum distance between two items on a belt, in tiles. */
+export const ITEM_SPACING = 1 / 3;
+/** Max connections per power pole. */
+export const POLE_MAX_LINKS = 4;
+/** Max power line length, in tiles (center to center). */
+export const LINK_RANGE = 5;
+/** Autosave interval. */
+export const AUTOSAVE_MS = 30_000;
+/** localStorage key for the save game. */
+export const SAVE_KEY = 'cogwork-isles-save-v1';
