@@ -1,0 +1,19 @@
+{
+  "name": "cogwork-isles",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "pixi.js": "^8.22.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.0",
+    "vite": "^7.3.7"
+  }
+}
